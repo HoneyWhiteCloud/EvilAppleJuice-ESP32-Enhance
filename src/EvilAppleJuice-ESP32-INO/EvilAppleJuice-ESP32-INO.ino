@@ -19,6 +19,17 @@
 BLEAdvertising *pAdvertising;  // global variable
 uint32_t delayMilliseconds = 100;
 
+// Boot button control - Different GPIO for different ESP32 variants
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C2) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
+#define BOOT_BUTTON_PIN 9  // GPIO9 for ESP32-C3, C2, S3, C6, H2
+#else
+#define BOOT_BUTTON_PIN 0  // GPIO0 for original ESP32
+#endif
+
+bool broadcastEnabled = true;  // Start with broadcasting enabled
+unsigned long lastButtonPress = 0;
+const unsigned long debounceDelay = 200;  // 200ms debounce
+
 /*
   These are audio devices: wireless headphones / earbuds
   It seems these need a shorter range between ESP & iDevice
@@ -107,6 +118,12 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starting ESP32 BLE");
 
+  // Setup boot button with internal pull-up
+  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
+  Serial.print("Boot button configured on GPIO");
+  Serial.println(BOOT_BUTTON_PIN);
+  Serial.println("Press BOOT button to toggle broadcasting on/off");
+
   BLEDevice::init("AirPods 69");
 
   // Increase the BLE Power to 21dBm (MAX)
@@ -123,6 +140,31 @@ void setup() {
 }
 
 void loop() {
+  // Check boot button state (active LOW)
+  if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastButtonPress > debounceDelay) {
+      broadcastEnabled = !broadcastEnabled;
+      lastButtonPress = currentTime;
+
+      if (broadcastEnabled) {
+        Serial.println("Broadcasting ENABLED");
+      } else {
+        Serial.println("Broadcasting DISABLED");
+      }
+
+      // Wait for button release
+      while (digitalRead(BOOT_BUTTON_PIN) == LOW) {
+        delay(10);
+      }
+    }
+  }
+
+  // Skip broadcasting if disabled
+  if (!broadcastEnabled) {
+    delay(100);
+    return;
+  }
 
   // First generate fake random MAC
   esp_bd_addr_t dummy_addr = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
