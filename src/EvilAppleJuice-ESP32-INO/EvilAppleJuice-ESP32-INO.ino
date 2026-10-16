@@ -17,7 +17,7 @@
 #endif
 
 BLEAdvertising *pAdvertising;  // global variable
-uint32_t delayMilliseconds = 100;
+uint32_t delayMilliseconds = 500;
 
 // Boot button control - Different GPIO for different ESP32 variants
 #if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C2) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
